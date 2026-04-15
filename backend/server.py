@@ -18,9 +18,22 @@ from bson import ObjectId
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = "mongodb+srv://sharmassiddharth17_db_user:7x6KSnqXjiDa4Uyr@cluster0.nkvxfh0.mongodb.net/?appName=Cluster0"
-client = AsyncIOMotorClient(mongo_url)
-db = client["nexorium"]
+DEFAULT_DB_NAME = "nexorium"
+
+
+def get_mongo_url() -> str:
+    mongo_url = os.environ.get("MONGO_URL")
+    if not mongo_url:
+        raise RuntimeError("MONGO_URL environment variable is required")
+    return mongo_url
+
+
+def get_database_name() -> str:
+    return os.environ.get("MONGO_DB_NAME", DEFAULT_DB_NAME)
+
+
+client = AsyncIOMotorClient(get_mongo_url())
+db = client[get_database_name()]
 
 
 app = FastAPI()
