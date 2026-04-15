@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-export const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8001';
+const DEFAULT_BACKEND_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://nexorium-p.onrender.com'
+    : 'http://127.0.0.1:8001';
+
+export const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || DEFAULT_BACKEND_URL;
 export const TOKEN_KEY = 'nexorium_token';
 
 const api = axios.create({
