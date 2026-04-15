@@ -1,0 +1,143 @@
+{
+  "theme": "dark",
+  "archetype": "5 (Jewel & Luxury) + 4 (Swiss High Contrast)",
+  "vibe": "Authoritative, Secure, Premium, Cinematic Web3",
+  "colors": {
+    "background": {
+      "main": "#03040B",
+      "surface": "#090B14",
+      "surface_elevated": "#0D111D",
+      "glass": "rgba(9, 11, 20, 0.6)"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#94A3B8",
+      "muted": "#475569",
+      "accent": "#818CF8"
+    },
+    "brand": {
+      "primary": "#4F46E5",
+      "primary_hover": "#6366F1",
+      "accent_purple": "#8B5CF6",
+      "accent_blue": "#3B82F6",
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444"
+    },
+    "borders": {
+      "subtle": "rgba(255, 255, 255, 0.05)",
+      "active": "rgba(99, 102, 241, 0.4)",
+      "glow": "rgba(79, 70, 229, 0.2)"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Outfit, sans-serif",
+      "body": "Manrope, sans-serif",
+      "mono": "Azeret Mono, monospace"
+    },
+    "rules": {
+      "h1": "text-4xl sm:text-5xl font-light tracking-tight text-white",
+      "h2": "text-2xl sm:text-3xl font-medium tracking-tight text-white",
+      "h3": "text-xl sm:text-2xl font-medium tracking-tight text-white",
+      "body": "text-base text-[#94A3B8] leading-relaxed",
+      "mono_label": "font-mono text-xs uppercase tracking-[0.2em] text-[#818CF8]",
+      "wallet_address": "font-mono text-sm text-[#E2E8F0]"
+    }
+  },
+  "spacing_and_layout": {
+    "container": "max-w-7xl mx-auto px-6 sm:px-12",
+    "bento_grid": "grid grid-cols-1 md:grid-cols-12 gap-6",
+    "card_padding": "p-8",
+    "section_spacing": "py-24",
+    "surface_treatment": {
+      "card": "bg-[#090B14] border border-white/5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
+      "glass_header": "backdrop-blur-xl bg-[#03040B]/70 border-b border-white/5",
+      "upload_zone": "relative border-2 border-dashed border-white/10 bg-[#0D111D] rounded-3xl p-12 hover:border-[#4F46E5]/50 transition-colors duration-300"
+    }
+  },
+  "components": {
+    "navbar": {
+      "type": "glassmorphism",
+      "classes": "fixed top-0 w-full z-50 backdrop-blur-2xl bg-[#03040B]/80 border-b border-white/[0.02]",
+      "instructions": "Must contain the Nexorium logo on the left, primary navigation links in the center, and the Profile icon (trigger for Shadcn Sheet) on the top right."
+    },
+    "buttons": {
+      "primary": "bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-6 py-3 font-medium transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]",
+      "secondary": "bg-[#0D111D] border border-white/10 hover:bg-[#1A2133] hover:border-white/20 text-white rounded-full px-6 py-3 font-medium transition-all",
+      "wallet": "flex items-center gap-2 bg-[#F6851B]/10 border border-[#F6851B]/20 text-[#F6851B] hover:bg-[#F6851B]/20 rounded-full px-4 py-2 text-sm font-medium transition-colors"
+    },
+    "profile_drawer": {
+      "type": "shadcn_sheet",
+      "classes": "bg-[#090B14] border-l border-white/5 text-white",
+      "instructions": "Use Shadcn Sheet. Overlay should be black/60 backdrop-blur-sm. Inside: User Avatar (initials, large, rounded-full bg-indigo-600), Name, Email, Wallet Address (mono), Stats (Bento style grid for Total Assets and NFTs). Include close button."
+    },
+    "data_table": {
+      "instructions": "Use Shadcn Table. No default stripes. Rows have border-b border-white/5. Hover state on rows: bg-white/[0.02]. Column headers: mono_label style. Badges for status: Processing (yellow/10 text-yellow-500), Completed (emerald/10 text-emerald-500)."
+    },
+    "input_fields": {
+      "instructions": "Shadcn Input. bg-[#0D111D] border border-white/10 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl px-4 py-6"
+    }
+  },
+  "animations": {
+    "hover": "transition-all duration-300 ease-out",
+    "page_load": "framer-motion initial opacity-0 y-4, animate opacity-1 y-0 stagger 0.1s",
+    "drawer": "slide in from right, smooth spring physics"
+  },
+  "assets": {
+    "icons": {
+      "library": "lucide-react",
+      "usage": "Use stroke-width 1.5. Clean and technical."
+    },
+    "images": {
+      "hero_background": {
+        "url": "https://static.prod-images.emergentagent.com/jobs/4363c4e3-7a58-4420-8a3b-9ae995a2edf7/images/d281a2052aab858f08c0e65dc1f47e3141595a4e989833561f4834af6b2af4ab.png",
+        "description": "Abstract 3D geometric glass shapes floating in deep dark midnight space, elegant dark blue and violet lighting. Use as an ambient, low-opacity background for the Hero or Authentication views."
+      },
+      "texture_background": {
+        "url": "https://static.prod-images.emergentagent.com/jobs/4363c4e3-7a58-4420-8a3b-9ae995a2edf7/images/29e2ec2b9ac1b1ef372f66a80ba60bd5419dfa9f49eec0937050bf3d9471fd92.png",
+        "description": "Dark textured carbon fiber or matte black paper. Use as the base texture for main dashboard cards (opacity 20% mixed with dark solid color) or page background to kill digital flatness."
+      },
+      "auth_visual": {
+        "url": "https://static.prod-images.emergentagent.com/jobs/4363c4e3-7a58-4420-8a3b-9ae995a2edf7/images/bf4f62aca118c5b5462f6d0ea4b67bc74578ae6b92fa3525a5602db92e84255f.png",
+        "description": "Metallic dark obsidian shield with subtle glowing neon blue edge. Use this in the Verification page or empty states to signify security."
+      }
+    }
+  },
+  "pages_and_flows": {
+    "layout": "Global Layout: Glass Navbar at top. Main content area with top padding pt-24.",
+    "dashboard": {
+      "structure": "Header with 'Your Digital Assets' (H1) and primary action 'Register New IP'. Stats overview at the top (bento grid style: 3 cards). Below: Assets Data Table with search bar (Shadcn Input) and filter dropdown.",
+      "state": "Empty state should use auth_visual image, small, with 'No assets registered yet'."
+    },
+    "register_asset": {
+      "structure": "Stepped flow or single tall card. 1. Connect Wallet (MetaMask button). 2. Upload Zone (large dashed area, drag-drop). 3. File Details (Name, Size). 4. Progress Area: Generating SHA-256 Hash -> Simulating Mint -> Completed. Use Framer Motion for step transitions.",
+      "ui_notes": "Use the 'Tracing Beam' effect around the Upload Zone when an upload is active."
+    },
+    "verify_ownership": {
+      "structure": "Minimal, focused search UI. Large search input (text-2xl) in the center of the screen: 'Enter File Hash or NFT ID'. On verify: show a sleek card with 'Verified' success state, original timestamp, Owner Wallet, and File Hash. Use mono_label font for data keys."
+    }
+  },
+  "testing_attributes": {
+    "rule": "All interactive and key informational elements MUST include a data-testid attribute.",
+    "examples": [
+      "data-testid='navbar-profile-btn'",
+      "data-testid='profile-drawer'",
+      "data-testid='upload-zone'",
+      "data-testid='connect-wallet-btn'",
+      "data-testid='asset-search-input'",
+      "data-testid='register-submit-btn'",
+      "data-testid='verify-hash-input'",
+      "data-testid='verify-submit-btn'"
+    ]
+  },
+  "technical_instructions_to_main_agent": [
+    "Install specific fonts via Google Fonts: Outfit, Manrope, Azeret Mono.",
+    "Install required libraries: lucide-react, framer-motion, ethers (for MetaMask connection).",
+    "Use pure HTML/Tailwind for structural layout (grid, flex), but Shadcn UI for complex components (Dialog, Sheet, Table, Input, Button).",
+    "Strictly follow the color hex codes for the Web3 dark cinematic look. Do NOT revert to default gray or slate.",
+    "Ensure the hero_background image is used with an overlay (e.g. bg-black/60) so it doesn't distract from text.",
+    "MetaMask Connection should be implemented using ethers.js. Display partial wallet address (e.g., 0x1234...ABCD) once connected.",
+    "Simulate NFT generation by creating a random hash/ID and setting a timeout to mock network latency, displaying intermediate steps (Hash Generated -> Minting -> Completed)."
+  ]
+}

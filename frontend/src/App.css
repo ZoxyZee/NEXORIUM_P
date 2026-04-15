@@ -1,0 +1,108 @@
+/* Nexorium Custom Styles */
+.glass-nav {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+#emergent-badge,
+[href*="emergent.sh"][href*="emergent-badge"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.premium-shell {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(37, 99, 235, 0.16), transparent 28rem),
+    radial-gradient(circle at 82% 4%, rgba(139, 92, 246, 0.12), transparent 24rem),
+    linear-gradient(180deg, #03040B 0%, #060814 52%, #03040B 100%);
+}
+
+.premium-card {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(145deg, rgba(12, 16, 32, 0.84), rgba(7, 9, 19, 0.72));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.premium-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.42), rgba(129, 140, 248, 0.18), rgba(45, 212, 191, 0.18));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.premium-button {
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 55%, #7c3aed 100%);
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.28);
+}
+
+.premium-button:hover {
+  box-shadow: 0 20px 48px rgba(79, 70, 229, 0.38);
+}
+
+.soft-input {
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.soft-input:focus {
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.55), 0 0 28px rgba(79, 70, 229, 0.18);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #e0f2fe, #c7d2fe 48%, #ddd6fe);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.upload-zone {
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 1.5rem;
+  padding: 2px;
+  background: linear-gradient(135deg, rgba(79,70,229,0.3), transparent, rgba(139,92,246,0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.upload-zone:hover::before,
+.upload-zone.dragging::before {
+  opacity: 1;
+}
+
+.glow-indigo {
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
+}
+
+.glow-indigo:hover {
+  box-shadow: 0 0 30px rgba(79, 70, 229, 0.5);
+}
+
+/* Status step connector line */
+.step-connector {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 2px;
+  height: 24px;
+  transform: translateX(-50%);
+}

@@ -1,0 +1,1 @@
+(globalThis.webpackChunkfrontend=globalThis.webpackChunkfrontend||[]).push([[790],{790(){}}]);
