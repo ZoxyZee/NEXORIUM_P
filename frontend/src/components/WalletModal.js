@@ -1,16 +1,22 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Shield, Wallet, X } from 'lucide-react';
+import { ExternalLink, Loader2, Shield, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { WALLET_OPTIONS } from '@/hooks/useWallet';
 
 export function WalletModal({ open, onClose, walletHook }) {
   const { connecting, error, connectWallet } = walletHook;
 
-  const handleConnect = async (type) => {
+  const handleConnect = async (wallet) => {
     try {
-      const address = await connectWallet(type);
-      toast.success(type === 'metamask' ? 'MetaMask connected' : 'Demo Wallet connected');
+      const address = await connectWallet(wallet.id);
+      toast.success(`${wallet.name} connected`);
       if (address) onClose();
     } catch (err) {
+      if (err.code === 'WALLET_NOT_INSTALLED' && err.installUrl) {
+        window.open(err.installUrl, '_blank', 'noopener,noreferrer');
+        toast.info(`Install ${wallet.name} to continue`);
+        return;
+      }
       toast.error(err.message || 'Wallet connection failed');
     }
   };
@@ -56,38 +62,37 @@ export function WalletModal({ open, onClose, walletHook }) {
             </div>
 
             <div className="space-y-3">
-              <motion.button
-                whileHover={{ scale: 1.015, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleConnect('metamask')}
-                disabled={connecting}
-                className="w-full flex items-center gap-4 rounded-lg border border-white/10 bg-white/[0.045] p-4 text-left hover:bg-white/[0.075] transition-colors"
-              >
-                <div className="w-11 h-11 rounded-lg bg-[#F6851B]/12 border border-[#F6851B]/25 flex items-center justify-center">
-                  <Wallet className="w-5 h-5 text-[#FDBA74]" strokeWidth={1.5} />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-white">MetaMask</p>
-                  <p className="text-xs text-[#94A3B8] mt-1">Use your browser wallet</p>
-                </div>
-                {connecting && <Loader2 className="w-4 h-4 text-indigo-300 animate-spin" />}
-              </motion.button>
+              {WALLET_OPTIONS.map((wallet) => {
+                const isDemo = wallet.id === 'demo';
+                const accentClasses = isDemo
+                  ? 'bg-indigo-500/12 border-indigo-300/20 text-indigo-200'
+                  : 'bg-emerald-500/12 border-emerald-300/20 text-emerald-200';
 
-              <motion.button
-                whileHover={{ scale: 1.015, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleConnect('demo')}
-                disabled={connecting}
-                className="w-full flex items-center gap-4 rounded-lg border border-white/10 bg-white/[0.045] p-4 text-left hover:bg-white/[0.075] transition-colors"
-              >
-                <div className="w-11 h-11 rounded-lg bg-indigo-500/12 border border-indigo-300/20 flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-indigo-200" strokeWidth={1.5} />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-white">Demo Wallet</p>
-                  <p className="text-xs text-[#94A3B8] mt-1">Stable demo address for this session</p>
-                </div>
-              </motion.button>
+                return (
+                  <motion.button
+                    key={wallet.id}
+                    whileHover={{ scale: 1.015, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleConnect(wallet)}
+                    disabled={connecting}
+                    className="w-full flex items-center gap-4 rounded-lg border border-white/10 bg-white/[0.045] p-4 text-left hover:bg-white/[0.075] transition-colors"
+                  >
+                    <div className={`w-11 h-11 rounded-lg border flex items-center justify-center ${accentClasses}`}>
+                      {isDemo ? (
+                        <Shield className="w-5 h-5" strokeWidth={1.5} />
+                      ) : (
+                        <Wallet className="w-5 h-5" strokeWidth={1.5} />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-white">{wallet.name}</p>
+                      <p className="text-xs text-[#94A3B8] mt-1">{wallet.description}</p>
+                    </div>
+                    {!isDemo && <ExternalLink className="w-4 h-4 text-[#64748B]" strokeWidth={1.5} />}
+                    {connecting && <Loader2 className="w-4 h-4 text-indigo-300 animate-spin" />}
+                  </motion.button>
+                );
+              })}
             </div>
 
             {error && (
