@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAssets, getAuditReport, getStats, licenseAsset, transferAsset } from '@/lib/api';
 import { toast } from 'sonner';
 import { DashboardEnhancements } from '@/components/DashboardEnhancements';
+import { useAuth } from '@/contexts/AuthContext';
 
 const container = {
   hidden: { opacity: 0 },
@@ -46,6 +47,7 @@ function AnimatedNumber({ value }) {
 }
 
 export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
+  const { user } = useAuth();
   const [stats, setStats] = useState({ totalAssets: 0, totalNFTs: 0, processing: 0, royaltyEarnings: 0, activeLicenses: 0 });
   const [assets, setAssets] = useState([]);
   const [search, setSearch] = useState('');
@@ -148,6 +150,9 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
   };
 
   const verifiedAssets = Math.max((stats.totalAssets || 0) - (stats.processing || 0), 0);
+  const isSelectedAssetOwner = !!selectedAsset && !!user && selectedAsset.ownerEmail === user.email;
+  const selectedAssetIsImage = !!selectedAsset?.fileType && selectedAsset.fileType.startsWith('image/');
+  const selectedAssetIsVideo = !!selectedAsset?.fileType && selectedAsset.fileType.startsWith('video/');
   const statCards = useMemo(() => [
     {
       label: 'Total Assets',
@@ -425,6 +430,74 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className="space-y-5">
+                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                      <div>
+                        <p className="font-mono text-xs uppercase tracking-[0.15em] text-[#818CF8]">Asset Access</p>
+                        <h3 className="text-lg font-semibold text-white mt-2" style={{ fontFamily: 'Outfit' }}>
+                          {isSelectedAssetOwner ? 'Private Viewer' : 'Protected File'}
+                        </h3>
+                      </div>
+                      <Badge className={isSelectedAssetOwner ? 'bg-emerald-500/10 text-emerald-300 border-emerald-400/20 hover:bg-emerald-500/10' : 'bg-white/5 text-[#CBD5E1] border-white/10 hover:bg-white/5'}>
+                        {isSelectedAssetOwner ? 'Owner Access' : 'Metadata Only'}
+                      </Badge>
+                    </div>
+
+                    {isSelectedAssetOwner ? (
+                      <div className="space-y-4">
+                        <div className="rounded-lg border border-white/8 bg-black/20 overflow-hidden min-h-[240px] flex items-center justify-center">
+                          {selectedAssetIsImage && selectedAsset.assetUrl ? (
+                            <img
+                              src={selectedAsset.assetUrl}
+                              alt={selectedAsset.fileName}
+                              className="w-full max-h-[320px] object-contain"
+                            />
+                          ) : selectedAssetIsVideo && selectedAsset.assetUrl ? (
+                            <video
+                              src={selectedAsset.assetUrl}
+                              controls
+                              className="w-full max-h-[320px] object-contain bg-black"
+                            />
+                          ) : selectedAsset.assetUrl ? (
+                            <div className="px-6 py-10 text-center">
+                              <p className="text-white font-medium">{selectedAsset.fileName}</p>
+                              <p className="text-sm text-[#94A3B8] mt-2">Direct preview is not available for this format, but the secured file link is ready.</p>
+                            </div>
+                          ) : (
+                            <div className="px-6 py-10 text-center">
+                              <p className="text-white font-medium">No stored file available yet</p>
+                              <p className="text-sm text-[#94A3B8] mt-2">Assets uploaded before Cloudinary integration will only show metadata until re-uploaded.</p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          <a
+                            href={selectedAsset.assetUrl || '#'}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`premium-button text-white rounded-lg px-4 py-2 text-sm font-medium ${!selectedAsset.assetUrl ? 'pointer-events-none opacity-40' : ''}`}
+                          >
+                            View Asset
+                          </a>
+                          <a
+                            href={selectedAsset.assetUrl || '#'}
+                            download={selectedAsset.fileName}
+                            className={`rounded-lg border border-white/10 bg-white/[0.04] text-white px-4 py-2 text-sm font-medium hover:bg-white/[0.08] transition-colors ${!selectedAsset.assetUrl ? 'pointer-events-none opacity-40' : ''}`}
+                          >
+                            Download Asset
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-white/8 bg-white/[0.03] p-4">
+                        <p className="text-sm text-[#CBD5E1] leading-relaxed">
+                          The original asset file is only visible to the registered owner. Other users can review proof records, hashes, ownership data, and audit history.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
                     <div className="flex items-center gap-2 mb-4">
                       <ShieldCheck className="w-4 h-4 text-emerald-300" strokeWidth={1.5} />
