@@ -154,8 +154,9 @@ class LicenseAssetRequest(BaseModel):
 
 # --- Helpers ---
 def generate_nft_id():
-    digits = ''.join(random.choices(string.digits, k=5))
-    return f"NFT-{digits}"
+    date_part = datetime.now(timezone.utc).strftime("%Y%m%d")
+    random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    return f"NFT-{date_part}-{random_part}"
 
 def generate_asset_id():
     chars = ''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
