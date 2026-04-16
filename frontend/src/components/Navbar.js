@@ -1,10 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Upload, CheckCircle, LifeBuoy, User, Wallet, LogOut } from 'lucide-react';
+import { LayoutDashboard, Upload, CheckCircle, LifeBuoy, User, Wallet, BarChart3, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { BrandLogo } from '@/components/BrandLogo';
 
-export function Navbar({ onProfileOpen, onWalletOpen, walletHook }) {
+export function Navbar({ onProfileOpen, onWalletOpen, onMarketOpen, walletHook }) {
   const { account, connecting, shortenAddress } = walletHook;
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -79,6 +79,17 @@ export function Navbar({ onProfileOpen, onWalletOpen, walletHook }) {
           <motion.button
             whileHover={{ scale: 1.03, y: -1 }}
             whileTap={{ scale: 0.97 }}
+            onClick={onMarketOpen}
+            data-testid="open-market-btn"
+            className="hidden sm:flex items-center gap-2 bg-emerald-500/10 border border-emerald-300/20 text-emerald-200 hover:bg-emerald-500/15 rounded-full px-4 py-2 text-sm font-medium transition-colors shadow-[0_0_24px_rgba(16,185,129,0.08)]"
+          >
+            <BarChart3 className="w-4 h-4" strokeWidth={1.5} />
+            Live Market
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.03, y: -1 }}
+            whileTap={{ scale: 0.97 }}
             onClick={onWalletOpen}
             disabled={connecting}
             data-testid="connect-wallet-btn"
@@ -130,6 +141,13 @@ export function Navbar({ onProfileOpen, onWalletOpen, walletHook }) {
               {label}
             </NavLink>
           ))}
+          <button
+            onClick={onMarketOpen}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-emerald-200"
+          >
+            <BarChart3 className="w-4 h-4" strokeWidth={1.5} />
+            Market
+          </button>
         </div>
     </motion.nav>
   );

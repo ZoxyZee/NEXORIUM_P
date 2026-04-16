@@ -45,7 +45,7 @@ function AnimatedNumber({ value }) {
   return displayValue.toLocaleString();
 }
 
-export default function DashboardPage({ onWalletOpen }) {
+export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
   const [stats, setStats] = useState({ totalAssets: 0, totalNFTs: 0, processing: 0 });
   const [assets, setAssets] = useState([]);
   const [search, setSearch] = useState('');
@@ -190,6 +190,33 @@ export default function DashboardPage({ onWalletOpen }) {
       </motion.div>
 
       <DashboardEnhancements onWalletOpen={onWalletOpen} />
+
+      <motion.section variants={item} className="mb-10">
+        <button
+          onClick={onMarketOpen}
+          className="w-full premium-card rounded-lg p-6 text-left group overflow-hidden"
+          data-testid="market-cta-card"
+        >
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-emerald-500/16 via-cyan-400/10 to-transparent" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-lg bg-emerald-500/12 border border-emerald-300/20 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-emerald-200" strokeWidth={1.5} />
+              </div>
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#93C5FD] mb-2">Live Market</p>
+                <h2 className="text-xl font-semibold text-white" style={{ fontFamily: 'Outfit' }}>
+                  Track Crypto Prices in Realtime
+                </h2>
+                <p className="text-sm text-[#94A3B8] mt-2 leading-relaxed max-w-2xl">
+                  Open the market drawer to monitor trending coins, live Binance prices, and 24-hour momentum with animated tiles.
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-[#64748B] group-hover:text-white transition-colors" strokeWidth={1.5} />
+          </div>
+        </button>
+      </motion.section>
 
       <motion.section variants={item} className="mb-10">
         <button

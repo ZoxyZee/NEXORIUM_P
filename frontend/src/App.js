@@ -9,6 +9,7 @@ import DashboardPage from '@/components/DashboardPage';
 import UploadPage from '@/components/UploadPage';
 import VerifyPage from '@/components/VerifyPage';
 import SupportPage from '@/components/SupportPage';
+import { MarketDrawer } from '@/components/MarketDrawer';
 import LoginPage from '@/components/LoginPage';
 import RegisterPage from '@/components/RegisterPage';
 import { useWallet } from '@/hooks/useWallet';
@@ -31,6 +32,7 @@ function ProtectedRoute({ children }) {
 function AppRoutes() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [marketDrawerOpen, setMarketDrawerOpen] = useState(false);
   const walletHook = useWallet();
   const { user } = useAuth();
   const isAuthenticated = user && user !== false;
@@ -39,15 +41,16 @@ function AppRoutes() {
     <>
       {isAuthenticated && (
         <>
-          <Navbar onProfileOpen={() => setProfileOpen(true)} onWalletOpen={() => setWalletModalOpen(true)} walletHook={walletHook} />
+          <Navbar onProfileOpen={() => setProfileOpen(true)} onWalletOpen={() => setWalletModalOpen(true)} onMarketOpen={() => setMarketDrawerOpen(true)} walletHook={walletHook} />
           <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} walletAddress={walletHook.account} />
           <WalletModal open={walletModalOpen} onClose={() => setWalletModalOpen(false)} walletHook={walletHook} />
+          <MarketDrawer open={marketDrawerOpen} onClose={() => setMarketDrawerOpen(false)} />
         </>
       )}
       <Routes>
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />} />
-        <Route path="/" element={<ProtectedRoute><DashboardPage onWalletOpen={() => setWalletModalOpen(true)} /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><DashboardPage onWalletOpen={() => setWalletModalOpen(true)} onMarketOpen={() => setMarketDrawerOpen(true)} /></ProtectedRoute>} />
         <Route path="/upload" element={<ProtectedRoute><UploadPage walletHook={walletHook} onWalletOpen={() => setWalletModalOpen(true)} /></ProtectedRoute>} />
         <Route path="/verify" element={<ProtectedRoute><VerifyPage walletHook={walletHook} /></ProtectedRoute>} />
         <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
