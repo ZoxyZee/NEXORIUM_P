@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, FileText, Hexagon, Loader2, ShieldCheck, Sparkles, History, Crown, Send, X } from 'lucide-react';
+import { Search, FileText, Hexagon, Loader2, ShieldCheck, Sparkles, History, Crown, Send, LifeBuoy, ArrowRight, X } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import {
@@ -190,6 +190,32 @@ export default function DashboardPage({ onWalletOpen }) {
       </motion.div>
 
       <DashboardEnhancements onWalletOpen={onWalletOpen} />
+
+      <motion.section variants={item} className="mb-10">
+        <button
+          onClick={() => navigate('/support')}
+          className="w-full premium-card rounded-lg p-6 text-left group"
+          data-testid="support-cta-card"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-lg bg-indigo-500/12 border border-indigo-300/20 flex items-center justify-center">
+                <LifeBuoy className="w-5 h-5 text-indigo-200" strokeWidth={1.5} />
+              </div>
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#93C5FD] mb-2">Need Help?</p>
+                <h2 className="text-xl font-semibold text-white" style={{ fontFamily: 'Outfit' }}>
+                  Contact Support
+                </h2>
+                <p className="text-sm text-[#94A3B8] mt-2 leading-relaxed max-w-2xl">
+                  Reach the Nexorium team for creator onboarding, wallet issues, verification guidance, or ownership queries.
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-[#64748B] group-hover:text-white transition-colors" strokeWidth={1.5} />
+          </div>
+        </button>
+      </motion.section>
 
       {/* Search */}
       <motion.div variants={item} className="mb-6">

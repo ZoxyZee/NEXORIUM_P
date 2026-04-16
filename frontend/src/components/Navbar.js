@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Upload, CheckCircle, User, Wallet, LogOut } from 'lucide-react';
+import { LayoutDashboard, Upload, CheckCircle, LifeBuoy, User, Wallet, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { BrandLogo } from '@/components/BrandLogo';
@@ -13,6 +13,7 @@ export function Navbar({ onProfileOpen, onWalletOpen, walletHook }) {
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/upload', label: 'Upload', icon: Upload },
     { to: '/verify', label: 'Verify', icon: CheckCircle },
+    { to: '/support', label: 'Support', icon: LifeBuoy },
   ];
 
   return (

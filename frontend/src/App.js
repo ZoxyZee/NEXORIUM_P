@@ -8,6 +8,7 @@ import { ProfileDrawer } from '@/components/ProfileDrawer';
 import DashboardPage from '@/components/DashboardPage';
 import UploadPage from '@/components/UploadPage';
 import VerifyPage from '@/components/VerifyPage';
+import SupportPage from '@/components/SupportPage';
 import LoginPage from '@/components/LoginPage';
 import RegisterPage from '@/components/RegisterPage';
 import { useWallet } from '@/hooks/useWallet';
@@ -49,6 +50,7 @@ function AppRoutes() {
         <Route path="/" element={<ProtectedRoute><DashboardPage onWalletOpen={() => setWalletModalOpen(true)} /></ProtectedRoute>} />
         <Route path="/upload" element={<ProtectedRoute><UploadPage walletHook={walletHook} onWalletOpen={() => setWalletModalOpen(true)} /></ProtectedRoute>} />
         <Route path="/verify" element={<ProtectedRoute><VerifyPage walletHook={walletHook} /></ProtectedRoute>} />
+        <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
       </Routes>
       <Toaster
         theme="dark"
