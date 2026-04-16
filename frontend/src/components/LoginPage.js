@@ -102,14 +102,6 @@ export default function LoginPage() {
           </p>
         </form>
 
-        {/* Demo credentials */}
-        <div className="mt-6 bg-[#0D111D] border border-white/5 rounded-xl p-4" data-testid="demo-credentials">
-          <p className="font-mono text-xs uppercase tracking-[0.15em] text-[#818CF8] mb-2">Demo Credentials</p>
-          <div className="space-y-1 text-sm text-[#94A3B8]">
-            <p>user1@nexorium.com / 123456</p>
-            <p>user2@nexorium.com / 123456</p>
-          </div>
-        </div>
       </div>
     </motion.div>
   );
