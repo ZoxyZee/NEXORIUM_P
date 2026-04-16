@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, UploadFile, File, Form, HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -10,6 +11,7 @@ import hashlib
 import io
 import random
 import string
+import urllib.request
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
@@ -246,6 +248,30 @@ def upload_asset_to_cloudinary(asset_id: str, file_name: str, contents: bytes) -
         unique_filename=False,
     )
 
+
+async def get_accessible_asset(asset_id: str, current_user: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    return await db.assets.find_one(
+        {
+            "id": asset_id,
+            "$or": [
+                {"userId": current_user["_id"]},
+                {"ownerEmail": current_user["email"]},
+                {"originalCreatorEmail": current_user["email"]},
+            ],
+        },
+        {"_id": 0}
+    )
+
+
+async def get_owner_asset(asset_id: str, current_user: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    return await db.assets.find_one(
+        {
+            "id": asset_id,
+            "ownerEmail": current_user["email"],
+        },
+        {"_id": 0}
+    )
+
 # --- Auth Routes ---
 @api_router.post("/auth/register")
 async def register(req: RegisterRequest, response: Response):
@@ -403,10 +429,58 @@ async def get_assets(request: Request, search: Optional[str] = None):
 @api_router.get("/assets/{asset_id}", response_model=AssetResponse)
 async def get_asset(asset_id: str, request: Request):
     current_user = await get_current_user(request)
-    asset = await db.assets.find_one({"id": asset_id, "userId": current_user["_id"]}, {"_id": 0})
+    asset = await get_accessible_asset(asset_id, current_user)
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     return AssetResponse(**asset)
+
+
+@api_router.get("/assets/{asset_id}/file")
+async def view_asset_file(asset_id: str, request: Request):
+    current_user = await get_current_user(request)
+    asset = await get_owner_asset(asset_id, current_user)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset file not available")
+    if not asset.get("assetUrl"):
+        raise HTTPException(status_code=404, detail="Stored file not found for this asset")
+
+    try:
+        with urllib.request.urlopen(asset["assetUrl"]) as response_stream:
+            file_bytes = response_stream.read()
+    except Exception as exc:
+        logger.exception("Asset proxy fetch failed for %s", asset_id)
+        raise HTTPException(status_code=502, detail="Unable to retrieve asset from storage") from exc
+
+    media_type = asset.get("fileType") or "application/octet-stream"
+    headers = {
+        "Content-Disposition": f'inline; filename="{asset.get("fileName", "asset")}"',
+        "Cache-Control": "no-store",
+    }
+    return StreamingResponse(io.BytesIO(file_bytes), media_type=media_type, headers=headers)
+
+
+@api_router.get("/assets/{asset_id}/download")
+async def download_asset_file(asset_id: str, request: Request):
+    current_user = await get_current_user(request)
+    asset = await get_owner_asset(asset_id, current_user)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset file not available")
+    if not asset.get("assetUrl"):
+        raise HTTPException(status_code=404, detail="Stored file not found for this asset")
+
+    try:
+        with urllib.request.urlopen(asset["assetUrl"]) as response_stream:
+            file_bytes = response_stream.read()
+    except Exception as exc:
+        logger.exception("Asset download fetch failed for %s", asset_id)
+        raise HTTPException(status_code=502, detail="Unable to retrieve asset from storage") from exc
+
+    media_type = asset.get("fileType") or "application/octet-stream"
+    headers = {
+        "Content-Disposition": f'attachment; filename="{asset.get("fileName", "asset")}"',
+        "Cache-Control": "no-store",
+    }
+    return StreamingResponse(io.BytesIO(file_bytes), media_type=media_type, headers=headers)
 
 @api_router.patch("/assets/{asset_id}/mint", response_model=AssetResponse)
 async def mint_asset(asset_id: str, request: Request):
@@ -564,17 +638,7 @@ async def license_asset(req: LicenseAssetRequest, request: Request):
 @api_router.get("/assets/{asset_id}/audit-report")
 async def get_audit_report(asset_id: str, request: Request):
     current_user = await get_current_user(request)
-    asset = await db.assets.find_one(
-        {
-            "id": asset_id,
-            "$or": [
-                {"userId": current_user["_id"]},
-                {"ownerEmail": current_user["email"]},
-                {"originalCreatorEmail": current_user["email"]},
-            ],
-        },
-        {"_id": 0}
-    )
+    asset = await get_accessible_asset(asset_id, current_user)
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     return build_audit_report(asset)

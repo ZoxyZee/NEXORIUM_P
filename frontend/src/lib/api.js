@@ -85,6 +85,11 @@ export async function getStats() {
   return response.data;
 }
 
+export async function getAsset(assetId) {
+  const response = await api.get(`/assets/${assetId}`);
+  return response.data;
+}
+
 export async function mintAsset(assetId) {
   const response = await api.patch(`/assets/${assetId}/mint`);
   return response.data;
@@ -107,6 +112,20 @@ export async function getAuditReport(assetId) {
 
 export async function getTransactions(assetId) {
   const response = await api.get(`/transactions/${assetId}`);
+  return response.data;
+}
+
+export async function getAssetFileBlob(assetId) {
+  const response = await api.get(`/assets/${assetId}/file`, {
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
+export async function downloadAssetFile(assetId) {
+  const response = await api.get(`/assets/${assetId}/download`, {
+    responseType: 'blob',
+  });
   return response.data;
 }
 

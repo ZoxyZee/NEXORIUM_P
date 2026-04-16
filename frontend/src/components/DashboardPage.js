@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Search, FileText, Hexagon, Loader2, ShieldCheck, Sparkles, History, Crown, ScrollText, BadgeDollarSign, Send, LifeBuoy, ArrowRight, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Search, FileText, Hexagon, Loader2, ShieldCheck, Sparkles, ScrollText, BadgeDollarSign, LifeBuoy, ArrowRight } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '../components/ui/table';
 import { useNavigate } from 'react-router-dom';
-import { getAssets, getAuditReport, getStats, licenseAsset, transferAsset } from '@/lib/api';
+import { getAssets, getStats } from '@/lib/api';
 import { toast } from 'sonner';
 import { DashboardEnhancements } from '@/components/DashboardEnhancements';
-import { useAuth } from '@/contexts/AuthContext';
 
 const container = {
   hidden: { opacity: 0 },
@@ -47,19 +46,10 @@ function AnimatedNumber({ value }) {
 }
 
 export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
-  const { user } = useAuth();
   const [stats, setStats] = useState({ totalAssets: 0, totalNFTs: 0, processing: 0, royaltyEarnings: 0, activeLicenses: 0 });
   const [assets, setAssets] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [selectedAsset, setSelectedAsset] = useState(null);
-  const [newOwner, setNewOwner] = useState('');
-  const [saleAmount, setSaleAmount] = useState('100');
-  const [licenseeEmail, setLicenseeEmail] = useState('');
-  const [licenseFee, setLicenseFee] = useState('75');
-  const [licenseLoading, setLicenseLoading] = useState(false);
-  const [auditReport, setAuditReport] = useState(null);
-  const [transferLoading, setTransferLoading] = useState(false);
   const navigate = useNavigate();
 
   const fetchData = async (q = '') => {
@@ -86,14 +76,6 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
     return () => clearTimeout(t);
   }, [search]);
 
-  useEffect(() => {
-    if (!selectedAsset) {
-      setAuditReport(null);
-      return;
-    }
-    getAuditReport(selectedAsset.id).then(setAuditReport).catch(() => setAuditReport(null));
-  }, [selectedAsset]);
-
   const formatDate = (iso) => {
     if (!iso) return '-';
     return new Date(iso).toLocaleDateString('en-US', {
@@ -101,58 +83,7 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
     });
   };
 
-  const handleTransfer = async (e) => {
-    e.preventDefault();
-    if (!selectedAsset || !newOwner.trim()) return;
-
-    setTransferLoading(true);
-    try {
-      const data = await transferAsset({
-        assetId: selectedAsset.id,
-        newOwner,
-        saleAmount: Number(saleAmount) || 100,
-      });
-      toast.success(data.royalty?.message || 'Transfer simulated successfully');
-      setSelectedAsset(data.asset);
-      setAssets(current => current.filter(asset => asset.id !== selectedAsset.id));
-      setNewOwner('');
-      fetchData(search);
-    } catch (err) {
-      const detail = err.response?.data?.detail;
-      toast.error(typeof detail === 'string' ? detail : 'Transfer failed');
-    } finally {
-      setTransferLoading(false);
-    }
-  };
-
-  const handleLicense = async (e) => {
-    e.preventDefault();
-    if (!selectedAsset || !licenseeEmail.trim()) return;
-
-    setLicenseLoading(true);
-    try {
-      const data = await licenseAsset({
-        assetId: selectedAsset.id,
-        licenseeEmail,
-        feeAmount: Number(licenseFee) || 75,
-      });
-      toast.success(`License issued to ${data.license.licenseeEmail}`);
-      setSelectedAsset(data.asset);
-      setAuditReport(data.auditReport);
-      setLicenseeEmail('');
-      fetchData(search);
-    } catch (err) {
-      const detail = err.response?.data?.detail;
-      toast.error(typeof detail === 'string' ? detail : 'License activation failed');
-    } finally {
-      setLicenseLoading(false);
-    }
-  };
-
   const verifiedAssets = Math.max((stats.totalAssets || 0) - (stats.processing || 0), 0);
-  const isSelectedAssetOwner = !!selectedAsset && !!user && selectedAsset.ownerEmail === user.email;
-  const selectedAssetIsImage = !!selectedAsset?.fileType && selectedAsset.fileType.startsWith('image/');
-  const selectedAssetIsVideo = !!selectedAsset?.fileType && selectedAsset.fileType.startsWith('video/');
   const statCards = useMemo(() => [
     {
       label: 'Total Assets',
@@ -196,7 +127,7 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
       variants={container}
       initial="hidden"
       animate="show"
-      className="premium-shell min-h-screen max-w-none px-6 sm:px-12 pt-24 pb-12"
+      className="premium-shell min-h-screen max-w-none px-6 sm:px-12 pt-32 sm:pt-24 pb-12"
       data-testid="dashboard-page"
     >
       <div className="max-w-7xl mx-auto">
@@ -350,7 +281,7 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
               {assets.map((asset) => (
                 <TableRow
                   key={asset.id}
-                  onClick={() => setSelectedAsset(asset)}
+                  onClick={() => navigate(`/assets/${asset.id}`)}
                   className="border-b border-white/5 hover:bg-white/[0.045] cursor-pointer transition-colors"
                   data-testid={`asset-row-${asset.id}`}
                 >
@@ -392,279 +323,6 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
         )}
       </motion.div>
       </div>
-
-      <AnimatePresence>
-        {selectedAsset && (
-          <motion.div
-            className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedAsset(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 24, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 18, scale: 0.97 }}
-              className="premium-card w-full max-w-4xl max-h-[88vh] overflow-y-auto rounded-lg p-7"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div>
-                  <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#93C5FD] mb-2">Nexorium Asset</p>
-                  <h2 className="text-3xl font-semibold gradient-text" style={{ fontFamily: 'Outfit' }}>
-                    {selectedAsset.fileName}
-                  </h2>
-                  <p className="text-sm text-[#94A3B8] mt-2">
-                    {selectedAsset.nftId} - {selectedAsset.ipfsHash || 'ipfs://pending'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedAsset(null)}
-                  className="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.04] text-[#94A3B8] hover:text-white hover:bg-white/[0.08] transition-colors"
-                  aria-label="Close asset details"
-                >
-                  <X className="w-4 h-4 mx-auto" strokeWidth={1.5} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <div className="space-y-5">
-                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
-                    <div className="flex items-center justify-between gap-3 mb-4">
-                      <div>
-                        <p className="font-mono text-xs uppercase tracking-[0.15em] text-[#818CF8]">Asset Access</p>
-                        <h3 className="text-lg font-semibold text-white mt-2" style={{ fontFamily: 'Outfit' }}>
-                          {isSelectedAssetOwner ? 'Private Viewer' : 'Protected File'}
-                        </h3>
-                      </div>
-                      <Badge className={isSelectedAssetOwner ? 'bg-emerald-500/10 text-emerald-300 border-emerald-400/20 hover:bg-emerald-500/10' : 'bg-white/5 text-[#CBD5E1] border-white/10 hover:bg-white/5'}>
-                        {isSelectedAssetOwner ? 'Owner Access' : 'Metadata Only'}
-                      </Badge>
-                    </div>
-
-                    {isSelectedAssetOwner ? (
-                      <div className="space-y-4">
-                        <div className="rounded-lg border border-white/8 bg-black/20 overflow-hidden min-h-[240px] flex items-center justify-center">
-                          {selectedAssetIsImage && selectedAsset.assetUrl ? (
-                            <img
-                              src={selectedAsset.assetUrl}
-                              alt={selectedAsset.fileName}
-                              className="w-full max-h-[320px] object-contain"
-                            />
-                          ) : selectedAssetIsVideo && selectedAsset.assetUrl ? (
-                            <video
-                              src={selectedAsset.assetUrl}
-                              controls
-                              className="w-full max-h-[320px] object-contain bg-black"
-                            />
-                          ) : selectedAsset.assetUrl ? (
-                            <div className="px-6 py-10 text-center">
-                              <p className="text-white font-medium">{selectedAsset.fileName}</p>
-                              <p className="text-sm text-[#94A3B8] mt-2">Direct preview is not available for this format, but the secured file link is ready.</p>
-                            </div>
-                          ) : (
-                            <div className="px-6 py-10 text-center">
-                              <p className="text-white font-medium">No stored file available yet</p>
-                              <p className="text-sm text-[#94A3B8] mt-2">Assets uploaded before Cloudinary integration will only show metadata until re-uploaded.</p>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-3">
-                          <a
-                            href={selectedAsset.assetUrl || '#'}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`premium-button text-white rounded-lg px-4 py-2 text-sm font-medium ${!selectedAsset.assetUrl ? 'pointer-events-none opacity-40' : ''}`}
-                          >
-                            View Asset
-                          </a>
-                          <a
-                            href={selectedAsset.assetUrl || '#'}
-                            download={selectedAsset.fileName}
-                            className={`rounded-lg border border-white/10 bg-white/[0.04] text-white px-4 py-2 text-sm font-medium hover:bg-white/[0.08] transition-colors ${!selectedAsset.assetUrl ? 'pointer-events-none opacity-40' : ''}`}
-                          >
-                            Download Asset
-                          </a>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-white/8 bg-white/[0.03] p-4">
-                        <p className="text-sm text-[#CBD5E1] leading-relaxed">
-                          The original asset file is only visible to the registered owner. Other users can review proof records, hashes, ownership data, and audit history.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
-                    <div className="flex items-center gap-2 mb-4">
-                      <ShieldCheck className="w-4 h-4 text-emerald-300" strokeWidth={1.5} />
-                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Ownership Metadata</h3>
-                    </div>
-                    {[
-                      ['Owner Email', selectedAsset.ownerEmail || 'Not available'],
-                      ['Wallet Address', selectedAsset.walletAddress || 'Not connected'],
-                      ['File Hash', selectedAsset.fileHash],
-                      ['Created', formatDate(selectedAsset.createdAt)],
-                      ['IPFS Placeholder', selectedAsset.ipfsHash || 'ipfs://fakeHash123'],
-                      ['Royalty Earnings', `$${Number(selectedAsset.royaltyEarnings || 0).toFixed(2)}`],
-                      ['Active Licenses', String((selectedAsset.activeLicenses || []).filter((license) => license.status === 'active').length)],
-                    ].map(([label, value]) => (
-                      <div key={label} className="flex items-start justify-between gap-4 py-2 border-b border-white/5 last:border-0">
-                        <span className="font-mono text-xs uppercase tracking-[0.15em] text-[#818CF8]">{label}</span>
-                        <span className="text-sm text-right text-[#CBD5E1] break-all max-w-[58%]">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Crown className="w-4 h-4 text-amber-300" strokeWidth={1.5} />
-                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Royalty Distribution</h3>
-                    </div>
-                    <p className="text-sm text-[#94A3B8] leading-relaxed mb-4">
-                      Transfers and licenses both contribute to a running royalty ledger for the creator.
-                    </p>
-                    <div className="text-3xl font-light text-white" style={{ fontFamily: 'Outfit' }}>
-                      {selectedAsset.royaltyPercentage ?? 10}% <span className="text-sm text-[#94A3B8]">creator royalty</span>
-                    </div>
-                    <p className="text-sm text-amber-300 mt-2">
-                      Earned: ${Number(selectedAsset.royaltyEarnings || 0).toFixed(2)}
-                    </p>
-                    <form onSubmit={handleTransfer} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_auto] gap-3 mt-5">
-                      <Input
-                        value={newOwner}
-                        onChange={e => setNewOwner(e.target.value)}
-                        placeholder="newowner@nexorium.com"
-                        className="soft-input bg-white/[0.04] border border-white/10 text-white rounded-lg"
-                      />
-                      <Input
-                        value={saleAmount}
-                        onChange={e => setSaleAmount(e.target.value)}
-                        type="number"
-                        min="0"
-                        className="soft-input bg-white/[0.04] border border-white/10 text-white rounded-lg"
-                      />
-                      <button
-                        type="submit"
-                        disabled={transferLoading || !newOwner.trim()}
-                        className="premium-button disabled:bg-none disabled:bg-indigo-600/30 text-white rounded-lg px-4 py-2 text-sm font-medium"
-                      >
-                        {transferLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      </button>
-                    </form>
-                  </div>
-
-                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
-                    <div className="flex items-center gap-2 mb-4">
-                      <ScrollText className="w-4 h-4 text-violet-200" strokeWidth={1.5} />
-                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Active Licenses</h3>
-                    </div>
-                    <form onSubmit={handleLicense} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_auto] gap-3">
-                      <Input
-                        value={licenseeEmail}
-                        onChange={e => setLicenseeEmail(e.target.value)}
-                        placeholder="licensee@studio.com"
-                        className="soft-input bg-white/[0.04] border border-white/10 text-white rounded-lg"
-                      />
-                      <Input
-                        value={licenseFee}
-                        onChange={e => setLicenseFee(e.target.value)}
-                        type="number"
-                        min="0"
-                        className="soft-input bg-white/[0.04] border border-white/10 text-white rounded-lg"
-                      />
-                      <button
-                        type="submit"
-                        disabled={licenseLoading || !licenseeEmail.trim()}
-                        className="premium-button disabled:bg-none disabled:bg-indigo-600/30 text-white rounded-lg px-4 py-2 text-sm font-medium"
-                      >
-                        {licenseLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScrollText className="w-4 h-4" />}
-                      </button>
-                    </form>
-                    <div className="space-y-3 mt-5">
-                      {(selectedAsset.activeLicenses || []).length === 0 ? (
-                        <p className="text-sm text-[#94A3B8]">No active licenses yet.</p>
-                      ) : (
-                        selectedAsset.activeLicenses.map((license) => (
-                          <div key={license.licenseId} className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-medium text-white">{license.licenseeEmail}</p>
-                                <p className="text-xs text-[#94A3B8] mt-1">{license.licenseType} - expires {formatDate(license.expiresAt)}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm text-violet-200">${Number(license.feeAmount || 0).toFixed(2)}</p>
-                                <p className="text-xs text-amber-300">Royalty ${Number(license.royaltyAmount || 0).toFixed(2)}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-5">
-                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
-                    <div className="flex items-center gap-2 mb-4">
-                      <History className="w-4 h-4 text-indigo-200" strokeWidth={1.5} />
-                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Activity Timeline</h3>
-                    </div>
-                    <div className="space-y-4">
-                      {(selectedAsset.transactionHistory || []).length === 0 ? (
-                        <p className="text-sm text-[#94A3B8]">No transactions logged yet.</p>
-                      ) : (
-                        selectedAsset.transactionHistory.slice().reverse().map((tx, index) => (
-                          <div key={`${tx.timestamp}-${index}`} className="relative pl-6">
-                            <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-indigo-300 shadow-[0_0_18px_rgba(129,140,248,0.45)]" />
-                            <p className="text-sm font-medium text-white capitalize">{tx.actionType}</p>
-                            <p className="text-xs text-[#94A3B8] mt-1">{tx.user || 'system'} - {formatDate(tx.timestamp)}</p>
-                            {tx.message && <p className="text-xs text-emerald-300 mt-1">{tx.message}</p>}
-                            {tx.transactionHash && <p className="text-xs font-mono text-[#64748B] break-all mt-1">{tx.transactionHash}</p>}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
-                    <div className="flex items-center gap-2 mb-4">
-                      <ScrollText className="w-4 h-4 text-emerald-200" strokeWidth={1.5} />
-                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Audit Trail</h3>
-                    </div>
-                    {!auditReport ? (
-                      <p className="text-sm text-[#94A3B8]">Preparing evidence report...</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {[
-                          ['Generated', formatDate(auditReport.generatedAt)],
-                          ['Transactions', String(auditReport.transactionCount || 0)],
-                          ['Active Licenses', String(auditReport.activeLicenseCount || 0)],
-                          ['Creator Earnings', `$${Number(auditReport.royaltyEarnings || 0).toFixed(2)}`],
-                        ].map(([label, value]) => (
-                          <div key={label} className="flex items-start justify-between gap-4 py-2 border-b border-white/5 last:border-0">
-                            <span className="font-mono text-xs uppercase tracking-[0.15em] text-[#818CF8]">{label}</span>
-                            <span className="text-sm text-right text-[#CBD5E1]">{value}</span>
-                          </div>
-                        ))}
-                        <div className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
-                          <p className="text-xs font-mono uppercase tracking-[0.15em] text-[#818CF8] mb-2">Evidence Summary</p>
-                          <p className="text-sm text-[#CBD5E1] leading-relaxed">
-                            Ownership anchored to {auditReport.fileHash?.slice(0, 18)}... with {auditReport.transactionCount || 0} recorded events and {auditReport.activeLicenseCount || 0} active licenses.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }

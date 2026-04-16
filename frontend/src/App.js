@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/Navbar';
 import { ProfileDrawer } from '@/components/ProfileDrawer';
 import DashboardPage from '@/components/DashboardPage';
+import AssetDetailPage from '@/components/AssetDetailPage';
 import UploadPage from '@/components/UploadPage';
 import VerifyPage from '@/components/VerifyPage';
 import SupportPage from '@/components/SupportPage';
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />} />
         <Route path="/" element={<ProtectedRoute><DashboardPage onWalletOpen={() => setWalletModalOpen(true)} onMarketOpen={() => setMarketDrawerOpen(true)} /></ProtectedRoute>} />
+        <Route path="/assets/:assetId" element={<ProtectedRoute><AssetDetailPage /></ProtectedRoute>} />
         <Route path="/upload" element={<ProtectedRoute><UploadPage walletHook={walletHook} onWalletOpen={() => setWalletModalOpen(true)} /></ProtectedRoute>} />
         <Route path="/verify" element={<ProtectedRoute><VerifyPage walletHook={walletHook} /></ProtectedRoute>} />
         <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />

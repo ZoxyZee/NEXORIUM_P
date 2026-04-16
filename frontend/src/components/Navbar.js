@@ -24,7 +24,7 @@ export function Navbar({ onProfileOpen, onWalletOpen, onMarketOpen, walletHook }
       className="fixed top-0 w-full z-50 glass-nav bg-[#03040B]/70 border-b border-white/[0.08] shadow-[0_20px_80px_rgba(0,0,0,0.28)]"
       data-testid="navbar"
     >
-      <div className="max-w-7xl mx-auto px-6 sm:px-12 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-12 py-3 sm:h-16 sm:py-0 flex items-center justify-between gap-3">
         {/* Logo */}
         <NavLink to="/" className="flex items-center gap-2.5 group" data-testid="navbar-logo">
           <motion.div
@@ -75,7 +75,7 @@ export function Navbar({ onProfileOpen, onWalletOpen, onMarketOpen, walletHook }
         </div>
 
         {/* Right actions */}
-        <div className="flex items-center gap-3">
+        <div className="hidden sm:flex items-center gap-3">
           <motion.button
             whileHover={{ scale: 1.03, y: -1 }}
             whileTap={{ scale: 0.97 }}
@@ -123,14 +123,41 @@ export function Navbar({ onProfileOpen, onWalletOpen, onMarketOpen, walletHook }
       </div>
 
       {/* Mobile nav */}
-      <div className="sm:hidden flex items-center justify-center gap-1 px-4 pb-2">
+      <div className="sm:hidden px-4 pb-3 space-y-2">
+        <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+          <button
+            onClick={onWalletOpen}
+            disabled={connecting}
+            data-testid="connect-wallet-btn-mobile"
+            className="min-w-0 flex items-center justify-center gap-2 bg-[#F6851B]/10 border border-[#F6851B]/25 text-[#FDBA74] hover:bg-[#F6851B]/15 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+          >
+            <Wallet className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+            <span className="truncate">{connecting ? 'Connecting...' : account ? shortenAddress(account) : 'Connect Wallet'}</span>
+          </button>
+          <button
+            onClick={onProfileOpen}
+            data-testid="navbar-profile-btn-mobile"
+            className="w-11 h-11 rounded-lg bg-white/[0.06] border border-indigo-300/20 flex items-center justify-center hover:bg-indigo-500/15 transition-colors"
+          >
+            <User className="w-4 h-4 text-indigo-200" strokeWidth={1.5} />
+          </button>
+          <button
+            onClick={async () => { await logout(); navigate('/login'); }}
+            data-testid="logout-btn-mobile"
+            className="w-11 h-11 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center hover:bg-white/[0.08] transition-colors"
+            title="Logout"
+          >
+            <LogOut className="w-4 h-4 text-[#94A3B8]" strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
         {navLinks.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              `shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all ${
                 isActive
                   ? 'bg-white/[0.08] text-white border border-white/[0.08]'
                   : 'text-[#94A3B8] hover:text-white'
@@ -143,12 +170,13 @@ export function Navbar({ onProfileOpen, onWalletOpen, onMarketOpen, walletHook }
           ))}
           <button
             onClick={onMarketOpen}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-emerald-200"
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium text-emerald-200"
           >
             <BarChart3 className="w-4 h-4" strokeWidth={1.5} />
             Market
           </button>
         </div>
+      </div>
     </motion.nav>
   );
 }
