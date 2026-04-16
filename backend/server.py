@@ -95,6 +95,9 @@ class AssetResponse(BaseModel):
     ipfsHash: str = ""
     metadata: Dict[str, Any] = Field(default_factory=dict)
     royaltyPercentage: float = 10.0
+    royaltyEarnings: float = 0.0
+    royaltyCurrency: str = "USD"
+    activeLicenses: List[Dict[str, Any]] = Field(default_factory=list)
     transactionHistory: List[Dict[str, Any]] = Field(default_factory=list)
     status: str = "processing"
     createdAt: str
@@ -121,6 +124,13 @@ class TransferAssetRequest(BaseModel):
     newOwnerWalletAddress: str = ""
     saleAmount: float = 100.0
 
+class LicenseAssetRequest(BaseModel):
+    assetId: str
+    licenseeEmail: str
+    licenseType: str = "Commercial"
+    durationDays: int = 365
+    feeAmount: float = 75.0
+
 # --- Helpers ---
 def generate_nft_id():
     digits = ''.join(random.choices(string.digits, k=5))
@@ -137,6 +147,47 @@ def build_transaction(action_type: str, user: str, wallet_address: str = "", ext
         "walletAddress": wallet_address,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         **(extra or {}),
+    }
+
+def build_license_record(asset: Dict[str, Any], creator_email: str, req: LicenseAssetRequest):
+    now = datetime.now(timezone.utc)
+    license_id = "LIC-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    issued_at = now.isoformat()
+    expires_at = (now + timedelta(days=max(req.durationDays, 1))).isoformat()
+    royalty_amount = round((req.feeAmount * float(asset.get("royaltyPercentage", 10.0))) / 100, 2)
+    return {
+        "licenseId": license_id,
+        "licenseeEmail": req.licenseeEmail.strip().lower(),
+        "licenseType": req.licenseType.strip() or "Commercial",
+        "durationDays": max(req.durationDays, 1),
+        "feeAmount": req.feeAmount,
+        "royaltyAmount": royalty_amount,
+        "status": "active",
+        "issuedAt": issued_at,
+        "expiresAt": expires_at,
+        "creatorEmail": creator_email,
+    }
+
+def build_audit_report(asset: Dict[str, Any]):
+    transactions = asset.get("transactionHistory", [])
+    licenses = asset.get("activeLicenses", [])
+    return {
+        "assetId": asset.get("id"),
+        "fileName": asset.get("fileName"),
+        "nftId": asset.get("nftId"),
+        "ownerEmail": asset.get("ownerEmail"),
+        "originalCreatorEmail": asset.get("originalCreatorEmail"),
+        "walletAddress": asset.get("walletAddress", ""),
+        "fileHash": asset.get("fileHash"),
+        "ipfsHash": asset.get("ipfsHash", ""),
+        "royaltyPercentage": asset.get("royaltyPercentage", 0),
+        "royaltyEarnings": asset.get("royaltyEarnings", 0),
+        "royaltyCurrency": asset.get("royaltyCurrency", "USD"),
+        "activeLicenseCount": len([license for license in licenses if license.get("status") == "active"]),
+        "activeLicenses": licenses,
+        "transactionCount": len(transactions),
+        "timeline": transactions,
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
 
 def build_metadata(file_name: str, file_hash: str, owner_email: str, wallet_address: str, timestamp: str, nft_id: str):
@@ -277,6 +328,9 @@ async def upload_asset(
         "ipfsHash": metadata["ipfsHash"],
         "metadata": metadata,
         "royaltyPercentage": 10.0,
+        "royaltyEarnings": 0.0,
+        "royaltyCurrency": "USD",
+        "activeLicenses": [],
         "transactionHistory": [
             build_transaction("upload", current_user["email"], linked_wallet),
             build_transaction("metadata", current_user["email"], linked_wallet, {"ipfsHash": metadata["ipfsHash"]}),
@@ -395,6 +449,7 @@ async def transfer_asset(req: TransferAssetRequest, request: Request):
         "ownerEmail": new_owner_email,
         "walletAddress": new_owner_wallet,
         "transferredAt": now,
+        "royaltyEarnings": round(float(asset.get("royaltyEarnings", 0.0)) + royalty_amount, 2),
     }
     if new_owner:
         update_doc["userId"] = str(new_owner["_id"])
@@ -414,6 +469,75 @@ async def transfer_asset(req: TransferAssetRequest, request: Request):
             "message": f"{royalty_percentage}% royalty allocated to original creator",
         },
     }
+
+@api_router.post("/license-asset")
+async def license_asset(req: LicenseAssetRequest, request: Request):
+    current_user = await get_current_user(request)
+    asset = await db.assets.find_one(
+        {
+            "id": req.assetId,
+            "$or": [
+                {"userId": current_user["_id"]},
+                {"ownerEmail": current_user["email"]},
+                {"originalCreatorEmail": current_user["email"]},
+            ],
+        },
+        {"_id": 0}
+    )
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    license_record = build_license_record(asset, current_user["email"], req)
+    royalty_earnings = round(float(asset.get("royaltyEarnings", 0.0)) + float(license_record["royaltyAmount"]), 2)
+    transaction = build_transaction(
+        "license",
+        current_user["email"],
+        asset.get("walletAddress", ""),
+        {
+            "licenseId": license_record["licenseId"],
+            "licenseeEmail": license_record["licenseeEmail"],
+            "licenseType": license_record["licenseType"],
+            "feeAmount": license_record["feeAmount"],
+            "royaltyAmount": license_record["royaltyAmount"],
+            "message": f"{license_record['licenseType']} license activated for {license_record['licenseeEmail']}",
+        }
+    )
+
+    result = await db.assets.find_one_and_update(
+        {"id": req.assetId},
+        {
+            "$set": {"royaltyEarnings": royalty_earnings},
+            "$push": {
+                "activeLicenses": license_record,
+                "transactionHistory": transaction,
+            },
+        },
+        return_document=True,
+        projection={"_id": 0}
+    )
+    return {
+        "asset": AssetResponse(**result).model_dump(),
+        "license": license_record,
+        "auditReport": build_audit_report(result),
+    }
+
+@api_router.get("/assets/{asset_id}/audit-report")
+async def get_audit_report(asset_id: str, request: Request):
+    current_user = await get_current_user(request)
+    asset = await db.assets.find_one(
+        {
+            "id": asset_id,
+            "$or": [
+                {"userId": current_user["_id"]},
+                {"ownerEmail": current_user["email"]},
+                {"originalCreatorEmail": current_user["email"]},
+            ],
+        },
+        {"_id": 0}
+    )
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return build_audit_report(asset)
 
 @api_router.get("/transactions/{asset_id}")
 async def get_transactions(asset_id: str, request: Request):
@@ -453,13 +577,29 @@ async def get_profile(request: Request):
 async def get_stats(request: Request):
     user = await get_current_user(request)
     user_id = user["_id"]
-    total_assets = await db.assets.count_documents({"userId": user_id})
-    total_nfts = await db.assets.count_documents({"userId": user_id, "status": "completed"})
-    processing = await db.assets.count_documents({"userId": user_id, "status": "processing"})
+    asset_query = {
+        "$or": [
+            {"userId": user_id},
+            {"ownerEmail": user["email"]},
+            {"originalCreatorEmail": user["email"]},
+        ]
+    }
+    creator_query = {"originalCreatorEmail": user["email"]}
+    total_assets = await db.assets.count_documents(asset_query)
+    total_nfts = await db.assets.count_documents({"$and": [asset_query, {"status": "completed"}]})
+    processing = await db.assets.count_documents({"$and": [asset_query, {"status": "processing"}]})
+    creator_assets = await db.assets.find(creator_query, {"_id": 0, "royaltyEarnings": 1, "activeLicenses": 1}).to_list(500)
+    royalty_earnings = round(sum(float(asset.get("royaltyEarnings", 0.0)) for asset in creator_assets), 2)
+    active_licenses = sum(
+        len([license for license in asset.get("activeLicenses", []) if license.get("status") == "active"])
+        for asset in creator_assets
+    )
     return {
         "totalAssets": total_assets,
         "totalNFTs": total_nfts,
         "processing": processing,
+        "royaltyEarnings": royalty_earnings,
+        "activeLicenses": active_licenses,
     }
 
 app.include_router(api_router)

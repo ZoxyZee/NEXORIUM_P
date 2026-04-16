@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, FileText, Hexagon, Loader2, ShieldCheck, Sparkles, History, Crown, Send, LifeBuoy, ArrowRight, X } from 'lucide-react';
+import { Search, FileText, Hexagon, Loader2, ShieldCheck, Sparkles, History, Crown, ScrollText, BadgeDollarSign, Send, LifeBuoy, ArrowRight, X } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '../components/ui/table';
 import { useNavigate } from 'react-router-dom';
-import { getAssets, getStats, transferAsset } from '@/lib/api';
+import { getAssets, getAuditReport, getStats, licenseAsset, transferAsset } from '@/lib/api';
 import { toast } from 'sonner';
 import { DashboardEnhancements } from '@/components/DashboardEnhancements';
 
@@ -46,13 +46,17 @@ function AnimatedNumber({ value }) {
 }
 
 export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
-  const [stats, setStats] = useState({ totalAssets: 0, totalNFTs: 0, processing: 0 });
+  const [stats, setStats] = useState({ totalAssets: 0, totalNFTs: 0, processing: 0, royaltyEarnings: 0, activeLicenses: 0 });
   const [assets, setAssets] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [newOwner, setNewOwner] = useState('');
   const [saleAmount, setSaleAmount] = useState('100');
+  const [licenseeEmail, setLicenseeEmail] = useState('');
+  const [licenseFee, setLicenseFee] = useState('75');
+  const [licenseLoading, setLicenseLoading] = useState(false);
+  const [auditReport, setAuditReport] = useState(null);
   const [transferLoading, setTransferLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -80,6 +84,14 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
     return () => clearTimeout(t);
   }, [search]);
 
+  useEffect(() => {
+    if (!selectedAsset) {
+      setAuditReport(null);
+      return;
+    }
+    getAuditReport(selectedAsset.id).then(setAuditReport).catch(() => setAuditReport(null));
+  }, [selectedAsset]);
+
   const formatDate = (iso) => {
     if (!iso) return '-';
     return new Date(iso).toLocaleDateString('en-US', {
@@ -102,11 +114,36 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
       setSelectedAsset(data.asset);
       setAssets(current => current.filter(asset => asset.id !== selectedAsset.id));
       setNewOwner('');
+      fetchData(search);
     } catch (err) {
       const detail = err.response?.data?.detail;
       toast.error(typeof detail === 'string' ? detail : 'Transfer failed');
     } finally {
       setTransferLoading(false);
+    }
+  };
+
+  const handleLicense = async (e) => {
+    e.preventDefault();
+    if (!selectedAsset || !licenseeEmail.trim()) return;
+
+    setLicenseLoading(true);
+    try {
+      const data = await licenseAsset({
+        assetId: selectedAsset.id,
+        licenseeEmail,
+        feeAmount: Number(licenseFee) || 75,
+      });
+      toast.success(`License issued to ${data.license.licenseeEmail}`);
+      setSelectedAsset(data.asset);
+      setAuditReport(data.auditReport);
+      setLicenseeEmail('');
+      fetchData(search);
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : 'License activation failed');
+    } finally {
+      setLicenseLoading(false);
     }
   };
 
@@ -133,7 +170,21 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
       tone: 'from-emerald-500/18 to-teal-400/10',
       iconClass: 'text-emerald-300',
     },
-  ], [stats.totalAssets, stats.totalNFTs, verifiedAssets]);
+    {
+      label: 'Active Licenses',
+      value: stats.activeLicenses || 0,
+      icon: ScrollText,
+      tone: 'from-violet-500/18 to-fuchsia-400/10',
+      iconClass: 'text-violet-200',
+    },
+    {
+      label: 'Royalty Earnings',
+      value: `$${Number(stats.royaltyEarnings || 0).toFixed(2)}`,
+      icon: BadgeDollarSign,
+      tone: 'from-amber-500/18 to-orange-400/10',
+      iconClass: 'text-amber-300',
+    },
+  ], [stats.totalAssets, stats.totalNFTs, stats.activeLicenses, stats.royaltyEarnings, verifiedAssets]);
 
   return (
     <motion.div
@@ -167,7 +218,7 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
       </motion.div>
 
       {/* Stats */}
-      <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+      <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6 mb-10">
         {statCards.map(({ label, value, icon: Icon, tone, iconClass }) => (
           <motion.div
             key={label}
@@ -183,7 +234,7 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
               </div>
             </div>
             <p className="relative text-4xl font-light text-white" style={{ fontFamily: 'Outfit' }} data-testid={`stat-${label.toLowerCase().replace(/\s/g, '-')}`}>
-              <AnimatedNumber value={value} />
+              {typeof value === 'string' ? value : <AnimatedNumber value={value} />}
             </p>
           </motion.div>
         ))}
@@ -385,6 +436,8 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
                       ['File Hash', selectedAsset.fileHash],
                       ['Created', formatDate(selectedAsset.createdAt)],
                       ['IPFS Placeholder', selectedAsset.ipfsHash || 'ipfs://fakeHash123'],
+                      ['Royalty Earnings', `$${Number(selectedAsset.royaltyEarnings || 0).toFixed(2)}`],
+                      ['Active Licenses', String((selectedAsset.activeLicenses || []).filter((license) => license.status === 'active').length)],
                     ].map(([label, value]) => (
                       <div key={label} className="flex items-start justify-between gap-4 py-2 border-b border-white/5 last:border-0">
                         <span className="font-mono text-xs uppercase tracking-[0.15em] text-[#818CF8]">{label}</span>
@@ -396,14 +449,17 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
                   <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
                     <div className="flex items-center gap-2 mb-4">
                       <Crown className="w-4 h-4 text-amber-300" strokeWidth={1.5} />
-                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Royalty Simulation</h3>
+                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Royalty Distribution</h3>
                     </div>
                     <p className="text-sm text-[#94A3B8] leading-relaxed mb-4">
-                      This asset carries a royalty-ready record. Transfers simulate creator allocation without real payment.
+                      Transfers and licenses both contribute to a running royalty ledger for the creator.
                     </p>
                     <div className="text-3xl font-light text-white" style={{ fontFamily: 'Outfit' }}>
                       {selectedAsset.royaltyPercentage ?? 10}% <span className="text-sm text-[#94A3B8]">creator royalty</span>
                     </div>
+                    <p className="text-sm text-amber-300 mt-2">
+                      Earned: ${Number(selectedAsset.royaltyEarnings || 0).toFixed(2)}
+                    </p>
                     <form onSubmit={handleTransfer} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_auto] gap-3 mt-5">
                       <Input
                         value={newOwner}
@@ -427,26 +483,107 @@ export default function DashboardPage({ onWalletOpen, onMarketOpen }) {
                       </button>
                     </form>
                   </div>
+
+                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <ScrollText className="w-4 h-4 text-violet-200" strokeWidth={1.5} />
+                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Active Licenses</h3>
+                    </div>
+                    <form onSubmit={handleLicense} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_auto] gap-3">
+                      <Input
+                        value={licenseeEmail}
+                        onChange={e => setLicenseeEmail(e.target.value)}
+                        placeholder="licensee@studio.com"
+                        className="soft-input bg-white/[0.04] border border-white/10 text-white rounded-lg"
+                      />
+                      <Input
+                        value={licenseFee}
+                        onChange={e => setLicenseFee(e.target.value)}
+                        type="number"
+                        min="0"
+                        className="soft-input bg-white/[0.04] border border-white/10 text-white rounded-lg"
+                      />
+                      <button
+                        type="submit"
+                        disabled={licenseLoading || !licenseeEmail.trim()}
+                        className="premium-button disabled:bg-none disabled:bg-indigo-600/30 text-white rounded-lg px-4 py-2 text-sm font-medium"
+                      >
+                        {licenseLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScrollText className="w-4 h-4" />}
+                      </button>
+                    </form>
+                    <div className="space-y-3 mt-5">
+                      {(selectedAsset.activeLicenses || []).length === 0 ? (
+                        <p className="text-sm text-[#94A3B8]">No active licenses yet.</p>
+                      ) : (
+                        selectedAsset.activeLicenses.map((license) => (
+                          <div key={license.licenseId} className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-medium text-white">{license.licenseeEmail}</p>
+                                <p className="text-xs text-[#94A3B8] mt-1">{license.licenseType} - expires {formatDate(license.expiresAt)}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm text-violet-200">${Number(license.feeAmount || 0).toFixed(2)}</p>
+                                <p className="text-xs text-amber-300">Royalty ${Number(license.royaltyAmount || 0).toFixed(2)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <History className="w-4 h-4 text-indigo-200" strokeWidth={1.5} />
-                    <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Activity Timeline</h3>
+                <div className="space-y-5">
+                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <History className="w-4 h-4 text-indigo-200" strokeWidth={1.5} />
+                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Activity Timeline</h3>
+                    </div>
+                    <div className="space-y-4">
+                      {(selectedAsset.transactionHistory || []).length === 0 ? (
+                        <p className="text-sm text-[#94A3B8]">No transactions logged yet.</p>
+                      ) : (
+                        selectedAsset.transactionHistory.slice().reverse().map((tx, index) => (
+                          <div key={`${tx.timestamp}-${index}`} className="relative pl-6">
+                            <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-indigo-300 shadow-[0_0_18px_rgba(129,140,248,0.45)]" />
+                            <p className="text-sm font-medium text-white capitalize">{tx.actionType}</p>
+                            <p className="text-xs text-[#94A3B8] mt-1">{tx.user || 'system'} - {formatDate(tx.timestamp)}</p>
+                            {tx.message && <p className="text-xs text-emerald-300 mt-1">{tx.message}</p>}
+                            {tx.transactionHash && <p className="text-xs font-mono text-[#64748B] break-all mt-1">{tx.transactionHash}</p>}
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-4">
-                    {(selectedAsset.transactionHistory || []).length === 0 ? (
-                      <p className="text-sm text-[#94A3B8]">No transactions logged yet.</p>
+
+                  <div className="bg-white/[0.035] border border-white/10 rounded-lg p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <ScrollText className="w-4 h-4 text-emerald-200" strokeWidth={1.5} />
+                      <h3 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Audit Trail</h3>
+                    </div>
+                    {!auditReport ? (
+                      <p className="text-sm text-[#94A3B8]">Preparing evidence report...</p>
                     ) : (
-                      selectedAsset.transactionHistory.slice().reverse().map((tx, index) => (
-                        <div key={`${tx.timestamp}-${index}`} className="relative pl-6">
-                          <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-indigo-300 shadow-[0_0_18px_rgba(129,140,248,0.45)]" />
-                          <p className="text-sm font-medium text-white capitalize">{tx.actionType}</p>
-                          <p className="text-xs text-[#94A3B8] mt-1">{tx.user || 'system'} - {formatDate(tx.timestamp)}</p>
-                          {tx.message && <p className="text-xs text-emerald-300 mt-1">{tx.message}</p>}
-                          {tx.transactionHash && <p className="text-xs font-mono text-[#64748B] break-all mt-1">{tx.transactionHash}</p>}
+                      <div className="space-y-3">
+                        {[
+                          ['Generated', formatDate(auditReport.generatedAt)],
+                          ['Transactions', String(auditReport.transactionCount || 0)],
+                          ['Active Licenses', String(auditReport.activeLicenseCount || 0)],
+                          ['Creator Earnings', `$${Number(auditReport.royaltyEarnings || 0).toFixed(2)}`],
+                        ].map(([label, value]) => (
+                          <div key={label} className="flex items-start justify-between gap-4 py-2 border-b border-white/5 last:border-0">
+                            <span className="font-mono text-xs uppercase tracking-[0.15em] text-[#818CF8]">{label}</span>
+                            <span className="text-sm text-right text-[#CBD5E1]">{value}</span>
+                          </div>
+                        ))}
+                        <div className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
+                          <p className="text-xs font-mono uppercase tracking-[0.15em] text-[#818CF8] mb-2">Evidence Summary</p>
+                          <p className="text-sm text-[#CBD5E1] leading-relaxed">
+                            Ownership anchored to {auditReport.fileHash?.slice(0, 18)}... with {auditReport.transactionCount || 0} recorded events and {auditReport.activeLicenseCount || 0} active licenses.
+                          </p>
                         </div>
-                      ))
+                      </div>
                     )}
                   </div>
                 </div>

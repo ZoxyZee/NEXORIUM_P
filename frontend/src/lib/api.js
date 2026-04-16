@@ -95,6 +95,16 @@ export async function transferAsset(data) {
   return response.data;
 }
 
+export async function licenseAsset(data) {
+  const response = await api.post('/license-asset', data);
+  return response.data;
+}
+
+export async function getAuditReport(assetId) {
+  const response = await api.get(`/assets/${assetId}/audit-report`);
+  return response.data;
+}
+
 export async function getTransactions(assetId) {
   const response = await api.get(`/transactions/${assetId}`);
   return response.data;
