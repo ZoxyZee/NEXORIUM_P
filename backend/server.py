@@ -2,9 +2,12 @@ from fastapi import FastAPI, APIRouter, UploadFile, File, Form, HTTPException, R
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+import cloudinary
+import cloudinary.uploader
 import os
 import logging
 import hashlib
+import io
 import random
 import string
 from pathlib import Path
@@ -32,8 +35,23 @@ def get_database_name() -> str:
     return os.environ.get("MONGO_DB_NAME", DEFAULT_DB_NAME)
 
 
+def configure_cloudinary() -> None:
+    cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME")
+    api_key = os.environ.get("CLOUDINARY_API_KEY")
+    api_secret = os.environ.get("CLOUDINARY_API_SECRET")
+    if not all([cloud_name, api_key, api_secret]):
+        raise RuntimeError("Cloudinary environment variables are required")
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret,
+        secure=True,
+    )
+
+
 client = AsyncIOMotorClient(get_mongo_url())
 db = client[get_database_name()]
+configure_cloudinary()
 
 
 app = FastAPI()
@@ -93,6 +111,9 @@ class AssetResponse(BaseModel):
     originalCreatorEmail: str = ""
     walletAddress: str = ""
     ipfsHash: str = ""
+    assetUrl: str = ""
+    assetPublicId: str = ""
+    assetResourceType: str = ""
     metadata: Dict[str, Any] = Field(default_factory=dict)
     royaltyPercentage: float = 10.0
     royaltyEarnings: float = 0.0
@@ -211,6 +232,19 @@ async def mintNFT(file_hash: str):
         "transactionHash": "0x" + hashlib.sha256(f"mint:{file_hash}".encode("utf-8")).hexdigest(),
     }
 
+def upload_asset_to_cloudinary(asset_id: str, file_name: str, contents: bytes) -> Dict[str, Any]:
+    upload_stream = io.BytesIO(contents)
+    upload_stream.name = file_name
+    return cloudinary.uploader.upload(
+        upload_stream,
+        public_id=asset_id,
+        folder="nexorium/assets",
+        resource_type="auto",
+        overwrite=True,
+        use_filename=False,
+        unique_filename=False,
+    )
+
 # --- Auth Routes ---
 @api_router.post("/auth/register")
 async def register(req: RegisterRequest, response: Response):
@@ -312,6 +346,7 @@ async def upload_asset(
     linked_wallet = walletAddress or current_user.get("walletAddress", "")
     metadata = build_metadata(file.filename, file_hash, current_user["email"], linked_wallet, now, nft_id)
     mint_receipt = await mintNFT(file_hash)
+    cloudinary_asset = upload_asset_to_cloudinary(asset_id, file.filename, contents)
 
     doc = {
         "id": asset_id,
@@ -326,6 +361,9 @@ async def upload_asset(
         "userId": current_user["_id"],
         "walletAddress": linked_wallet,
         "ipfsHash": metadata["ipfsHash"],
+        "assetUrl": cloudinary_asset.get("secure_url", ""),
+        "assetPublicId": cloudinary_asset.get("public_id", ""),
+        "assetResourceType": cloudinary_asset.get("resource_type", ""),
         "metadata": metadata,
         "royaltyPercentage": 10.0,
         "royaltyEarnings": 0.0,
@@ -335,6 +373,7 @@ async def upload_asset(
             build_transaction("upload", current_user["email"], linked_wallet),
             build_transaction("metadata", current_user["email"], linked_wallet, {"ipfsHash": metadata["ipfsHash"]}),
             build_transaction("mint", current_user["email"], linked_wallet, {"transactionHash": mint_receipt["transactionHash"]}),
+            build_transaction("storage", current_user["email"], linked_wallet, {"assetUrl": cloudinary_asset.get("secure_url", "")}),
         ],
         "status": "processing",
         "createdAt": now,
