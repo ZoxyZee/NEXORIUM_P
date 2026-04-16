@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, Mail, Lock, User, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Loader2 } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -43,9 +44,7 @@ export default function RegisterPage() {
     >
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="w-14 h-14 rounded-xl bg-indigo-600 flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-7 h-7 text-white" strokeWidth={1.5} />
-          </div>
+          <BrandLogo size={56} className="mx-auto mb-4 shadow-[0_10px_30px_rgba(99,102,241,0.25)]" />
           <h1 className="text-3xl font-light text-white" style={{ fontFamily: 'Outfit' }}>
             Create Account
           </h1>

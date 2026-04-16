@@ -1,7 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Shield, LayoutDashboard, Upload, CheckCircle, User, Wallet, LogOut } from 'lucide-react';
+import { LayoutDashboard, Upload, CheckCircle, User, Wallet, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export function Navbar({ onProfileOpen, onWalletOpen, walletHook }) {
   const { account, connecting, shortenAddress } = walletHook;
@@ -28,9 +29,9 @@ export function Navbar({ onProfileOpen, onWalletOpen, walletHook }) {
           <motion.div
             whileHover={{ scale: 1.06, rotate: -3 }}
             whileTap={{ scale: 0.96 }}
-            className="w-9 h-9 rounded-lg premium-button flex items-center justify-center ring-1 ring-white/15"
+            className="ring-1 ring-white/15 rounded-lg overflow-hidden"
           >
-            <Shield className="w-4.5 h-4.5 text-white" strokeWidth={1.5} />
+            <BrandLogo size={36} className="block" />
           </motion.div>
           <span className="font-heading text-lg font-semibold tracking-tight gradient-text" style={{ fontFamily: 'Outfit' }}>
             Nexorium
