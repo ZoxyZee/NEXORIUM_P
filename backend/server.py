@@ -16,6 +16,11 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 import bcrypt
 import jwt
 from bson import ObjectId
@@ -213,6 +218,148 @@ def build_audit_report(asset: Dict[str, Any]):
         "timeline": transactions,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
+
+
+def build_audit_report_pdf(report: Dict[str, Any]) -> bytes:
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=0.7 * inch,
+        rightMargin=0.7 * inch,
+        topMargin=0.7 * inch,
+        bottomMargin=0.7 * inch,
+        title=f"Nexorium Evidence Report - {report.get('nftId', 'Asset')}",
+    )
+    styles = getSampleStyleSheet()
+    title_style = styles["Heading1"]
+    title_style.fontName = "Helvetica-Bold"
+    title_style.fontSize = 18
+    title_style.textColor = colors.HexColor("#111827")
+
+    section_style = ParagraphStyle(
+        "SectionTitle",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=12,
+        leading=15,
+        textColor=colors.HexColor("#312E81"),
+        spaceAfter=8,
+        spaceBefore=14,
+    )
+    body_style = ParagraphStyle(
+        "Body",
+        parent=styles["BodyText"],
+        fontName="Helvetica",
+        fontSize=9.5,
+        leading=13,
+        textColor=colors.HexColor("#1F2937"),
+    )
+    small_style = ParagraphStyle(
+        "Small",
+        parent=body_style,
+        fontSize=8.5,
+        leading=11,
+        textColor=colors.HexColor("#4B5563"),
+    )
+
+    story = [
+        Paragraph("Nexorium Evidence Report", title_style),
+        Spacer(1, 0.15 * inch),
+        Paragraph(
+            f"Generated on {datetime.now(timezone.utc).strftime('%b %d, %Y %H:%M UTC')} for NFT ID <b>{report.get('nftId', '-')}</b>.",
+            body_style,
+        ),
+        Spacer(1, 0.2 * inch),
+    ]
+
+    summary_rows = [
+        ["File Name", report.get("fileName", "-")],
+        ["Asset ID", report.get("assetId", "-")],
+        ["NFT ID", report.get("nftId", "-")],
+        ["Owner Email", report.get("ownerEmail", "-")],
+        ["Original Creator", report.get("originalCreatorEmail", "-")],
+        ["Wallet Address", report.get("walletAddress", "-") or "-"],
+        ["File Hash", report.get("fileHash", "-")],
+        ["IPFS Reference", report.get("ipfsHash", "-") or "-"],
+        ["Royalty Percentage", f"{report.get('royaltyPercentage', 0)}%"],
+        ["Royalty Earnings", f"${float(report.get('royaltyEarnings', 0)):.2f} {report.get('royaltyCurrency', 'USD')}"],
+        ["Active Licenses", str(report.get("activeLicenseCount", 0))],
+        ["Recorded Events", str(report.get("transactionCount", 0))],
+    ]
+
+    story.append(Paragraph("Asset Summary", section_style))
+    summary_table = Table(summary_rows, colWidths=[1.7 * inch, 4.6 * inch])
+    summary_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#EEF2FF")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#E5E7EB")),
+        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#312E81")),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ROWBACKGROUNDS", (1, 0), (1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(summary_table)
+
+    licenses = report.get("activeLicenses", [])
+    story.append(Paragraph("Licensing Summary", section_style))
+    if licenses:
+        license_rows = [["License ID", "Licensee", "Type", "Fee", "Expires"]]
+        for license_entry in licenses:
+            license_rows.append([
+                license_entry.get("licenseId", "-"),
+                license_entry.get("licenseeEmail", "-"),
+                license_entry.get("licenseType", "-"),
+                f"${float(license_entry.get('feeAmount', 0)):.2f}",
+                license_entry.get("expiresAt", "-"),
+            ])
+        license_table = Table(license_rows, colWidths=[1.2 * inch, 1.8 * inch, 1.1 * inch, 0.8 * inch, 1.8 * inch])
+        license_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E0E7FF")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#1E1B4B")),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#E5E7EB")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+            ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        story.append(license_table)
+    else:
+        story.append(Paragraph("No active licenses have been recorded for this asset.", body_style))
+
+    timeline = report.get("timeline", [])
+    story.append(Paragraph("Transaction Timeline", section_style))
+    if timeline:
+        for index, event in enumerate(timeline, start=1):
+            details = [
+                f"<b>{index}. {str(event.get('actionType', 'event')).title()}</b>",
+                f"User: {event.get('user', '-')}",
+                f"Timestamp: {event.get('timestamp', '-')}",
+            ]
+            if event.get("walletAddress"):
+                details.append(f"Wallet: {event.get('walletAddress')}")
+            if event.get("message"):
+                details.append(f"Message: {event.get('message')}")
+            if event.get("transactionHash"):
+                details.append(f"Transaction Hash: {event.get('transactionHash')}")
+            story.append(Paragraph("<br/>".join(details), small_style))
+            story.append(Spacer(1, 0.1 * inch))
+    else:
+        story.append(Paragraph("No recorded events are available for this asset.", body_style))
+
+    doc.build(story)
+    return buffer.getvalue()
 
 def build_metadata(file_name: str, file_hash: str, owner_email: str, wallet_address: str, timestamp: str, nft_id: str):
     ipfs_hash = f"ipfs://fakeHash{file_hash[:12]}"
@@ -642,6 +789,23 @@ async def get_audit_report(asset_id: str, request: Request):
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     return build_audit_report(asset)
+
+
+@api_router.get("/assets/{asset_id}/audit-report/download")
+async def download_audit_report(asset_id: str, request: Request):
+    current_user = await get_current_user(request)
+    asset = await get_accessible_asset(asset_id, current_user)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    report = build_audit_report(asset)
+    pdf_bytes = build_audit_report_pdf(report)
+    nft_id = asset.get("nftId", asset_id)
+    headers = {
+        "Content-Disposition": f'attachment; filename="{nft_id}-evidence-report.pdf"',
+        "Cache-Control": "no-store",
+    }
+    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers=headers)
 
 @api_router.get("/transactions/{asset_id}")
 async def get_transactions(asset_id: str, request: Request):

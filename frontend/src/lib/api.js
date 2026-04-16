@@ -129,6 +129,13 @@ export async function downloadAssetFile(assetId) {
   return response.data;
 }
 
+export async function downloadAuditReport(assetId) {
+  const response = await api.get(`/assets/${assetId}/audit-report/download`, {
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
 export async function verifyAsset(hash) {
   const response = await api.post('/verify', { query: hash });
   return response.data;

@@ -4,7 +4,7 @@ import { ArrowLeft, BadgeDollarSign, Crown, Download, ExternalLink, FileText, Hi
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { downloadAssetFile, getAsset, getAssetFileBlob, getAuditReport, getTransactions, licenseAsset, transferAsset } from '@/lib/api';
+import { downloadAssetFile, downloadAuditReport, getAsset, getAssetFileBlob, getAuditReport, getTransactions, licenseAsset, transferAsset } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 function formatDate(iso) {
@@ -28,6 +28,7 @@ export default function AssetDetailPage() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [reportDownloading, setReportDownloading] = useState(false);
   const [transferLoading, setTransferLoading] = useState(false);
   const [licenseLoading, setLicenseLoading] = useState(false);
   const [newOwner, setNewOwner] = useState('');
@@ -144,6 +145,26 @@ export default function AssetDetailPage() {
       URL.revokeObjectURL(url);
     } catch {
       toast.error('Download failed');
+    }
+  };
+
+  const handleAuditDownload = async () => {
+    if (!asset) return;
+    setReportDownloading(true);
+    try {
+      const blob = await downloadAuditReport(asset.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${asset.nftId || asset.id}-evidence-report.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Evidence report download failed');
+    } finally {
+      setReportDownloading(false);
     }
   };
 
@@ -378,9 +399,19 @@ export default function AssetDetailPage() {
             </section>
 
             <section className="premium-card rounded-lg p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <BadgeDollarSign className="w-4 h-4 text-emerald-200" strokeWidth={1.5} />
-                <h2 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Audit Report</h2>
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <BadgeDollarSign className="w-4 h-4 text-emerald-200" strokeWidth={1.5} />
+                  <h2 className="font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Audit Report</h2>
+                </div>
+                <button
+                  onClick={handleAuditDownload}
+                  disabled={reportDownloading}
+                  className="rounded-lg border border-white/10 bg-white/[0.04] text-white px-3 py-2 text-xs sm:text-sm font-medium hover:bg-white/[0.08] transition-colors inline-flex items-center gap-2 disabled:opacity-60"
+                >
+                  {reportDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" strokeWidth={1.5} />}
+                  Download Report
+                </button>
               </div>
               {!auditReport ? (
                 <p className="text-sm text-[#94A3B8]">Preparing evidence report...</p>
