@@ -45,9 +45,9 @@ const quickActions = [
 
 const checklist = [
   'Use original source files for upload',
-  'Connect a wallet before registration',
-  'Save the NFT ID and SHA-256 hash',
-  'Verify ownership before sharing proof',
+  'Connect a verified wallet before registering assets',
+  'Store the NFT ID and SHA-256 ownership record',
+  'Verify ownership before sharing proof links',
 ];
 
 const articles = [
@@ -65,7 +65,7 @@ const articles = [
     readTime: '5 min read',
     image: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?auto=format&fit=crop&w=900&q=80',
     summary: 'A connected wallet gives your protected assets a portable identity layer beyond email login.',
-    body: 'Email proves account access. A wallet adds a public identity that can travel across Web3 systems. For demos, the Demo Wallet keeps the experience safe while still showing how wallet-linked proof would work in production.',
+    body: 'Email proves account access. A wallet adds a public identity that can travel across Web3 systems. A connected wallet helps creators anchor protected assets to a reusable on-chain identity that can support verification, licensing, and royalty flows.',
   },
   {
     title: 'How to Share Proof Safely',
@@ -149,7 +149,7 @@ export function DashboardEnhancements({ onWalletOpen }) {
             </div>
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#93C5FD]">Protection Score</p>
-              <h3 className="text-xl font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Demo Ready</h3>
+              <h3 className="text-xl font-semibold text-white" style={{ fontFamily: 'Outfit' }}>Protection Active</h3>
             </div>
           </div>
           <div className="relative h-2 rounded-full bg-white/[0.06] overflow-hidden mb-5">
